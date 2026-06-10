@@ -50,7 +50,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/flask-app:v1.0
 
       - name: Deploy to Azure VM via SSH
         uses: appleboy/ssh-action@master
@@ -63,6 +62,10 @@ jobs:
           command_timeout: 10m
           script: |
             cd /home/azureuser/app
+            IMAGE_TAG=${{ github.sha }}
+            DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/flask-app:${IMAGE_TAG}"
+            sed -i "s|image: .*|image: ${DOCKER_IMAGE}|g" docker-compose.yml
+            cat docker-compose.yml
             docker-compose pull
             docker-compose down || true
             docker-compose up -d
