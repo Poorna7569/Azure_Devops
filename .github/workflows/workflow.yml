@@ -64,6 +64,7 @@ jobs:
           script: |
             cd /home/azureuser/app
             docker-compose pull
+            docker-compose down || true
             docker-compose up -d
             sleep 3
             docker ps
