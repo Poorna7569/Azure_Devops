@@ -50,6 +50,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/flask-app:v1.0
 
       - name: Deploy to Azure VM via SSH
         uses: appleboy/ssh-action@master
@@ -64,4 +65,5 @@ jobs:
             cd /home/azureuser/app
             docker compose pull
             docker compose up -d
+            sleep 5
             docker ps
