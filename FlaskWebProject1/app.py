@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from datetime import datetime
 import mysql.connector
 
@@ -62,6 +62,11 @@ def dbtime_old():
     from datetime import datetime
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return f"<h1>Server Time</h1><p>Current time: {current_time}</p>"
+
+@app.route('/version')
+def version():
+    """Returns the current version of the application."""
+    return jsonify({"version": "1.0"})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80, debug=False)
