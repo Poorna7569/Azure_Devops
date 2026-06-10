@@ -1,0 +1,13 @@
+name: Flask App CI/CD
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Echo Name
+      run: |
+        echo "Poorna!"
