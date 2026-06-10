@@ -7,9 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Echo Poorna
-      run: |
-        echo "Poorna!!"
+      run: echo "Poorna!!"
