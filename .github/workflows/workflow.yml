@@ -63,7 +63,7 @@ jobs:
           command_timeout: 10m
           script: |
             cd /home/azureuser/app
-            docker compose pull
-            docker compose up -d
-            sleep 5
+            docker-compose pull
+            docker-compose up -d
+            sleep 3
             docker ps
