@@ -50,6 +50,6 @@ jobs:
         file: ./FlaskWebProject1/Dockerfile
         push: true
         tags: |
-          ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
           ${{ secrets.DOCKER_USERNAME }}/flask-app:${{ github.sha }}
+          ${{ secrets.DOCKER_USERNAME }}/flask-app:v1.0
         
