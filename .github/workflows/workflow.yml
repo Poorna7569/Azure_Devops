@@ -61,9 +61,7 @@ jobs:
           timeout: 60s
           command_timeout: 10m
           script: |
-            echo "Connected successfully"
-            docker --version
-            cd /home/azureuser/app || mkdir -p /home/azureuser/app && cd /home/azureuser/app
+            cd /home/azureuser/app
             docker compose pull
             docker compose up -d
             docker ps
