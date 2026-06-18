@@ -71,7 +71,10 @@ def dbtime_old():
 @app.route('/version')
 def version():
     """Returns the current version of the application."""
-    return jsonify({"version": "2.1"})
+    return jsonify({
+
+        "version": APP_VERSION
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=False)
