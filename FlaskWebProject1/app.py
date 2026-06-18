@@ -1,18 +1,23 @@
 from flask import Flask, render_template, jsonify
 from datetime import datetime
 import mysql.connector
+import os
 
 app = Flask(__name__)
+
+# Get instance identifier from environment variable
+INSTANCE_NAME = os.getenv('INSTANCE_NAME', 'unknown')
+APP_VERSION = os.getenv('APP_VERSION', '1.0')
 
 @app.route('/')
 @app.route('/home')
 def home():
-    """Renders the home page."""
-    return render_template(
-        'index.html',
-        title='Home Page',
-        year=datetime.now().year,
-    )
+    """Renders the home page with instance information."""
+    return jsonify({
+        "instance": INSTANCE_NAME,
+        "version": APP_VERSION,
+        "timestamp": datetime.now().isoformat()
+    })
 
 @app.route('/contact')
 def contact():
@@ -69,4 +74,4 @@ def version():
     return jsonify({"version": "2.1"})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=False)
+    app.run(host='0.0.0.0', port=8000, debug=False)
