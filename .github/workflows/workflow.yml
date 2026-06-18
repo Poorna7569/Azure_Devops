@@ -179,10 +179,22 @@ jobs:
             if [ "${TARGET}" = "flask-app-1" ]; then
               echo "Pulling and updating flask-app-1 only"
               $DC pull flask-app-1 || true
+              # Remove any existing container for this service to avoid stale container metadata
+              CID=$($DC ps -q flask-app-1 2>/dev/null || true)
+              if [ -n "${CID}" ]; then
+                echo "Removing existing container(s) for flask-app-1: ${CID}"
+                docker rm -f ${CID} || true
+              fi
               $DC up -d flask-app-1
             elif [ "${TARGET}" = "flask-app-2" ]; then
               echo "Pulling and updating flask-app-2 only"
               $DC pull flask-app-2 || true
+              # Remove any existing container for this service to avoid stale container metadata
+              CID=$($DC ps -q flask-app-2 2>/dev/null || true)
+              if [ -n "${CID}" ]; then
+                echo "Removing existing container(s) for flask-app-2: ${CID}"
+                docker rm -f ${CID} || true
+              fi
               $DC up -d flask-app-2
             else
               echo "Pulling and updating all services"
