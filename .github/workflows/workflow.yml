@@ -68,6 +68,19 @@ jobs:
           script: |
             set -e
             cd /home/azureuser/app
+
+            # If this directory is a git checkout, try to sync it to origin/main so the
+            # VM has the latest docker-compose.yml from the repository. This avoids
+            # situations where an outdated compose file on the VM causes mismatched
+            # service names. The git commands are guarded and won't fail the job.
+            if [ -d .git ]; then
+              echo "Found .git — attempting to update working tree to origin/main"
+              git fetch --all --prune || true
+              git reset --hard origin/main || true
+            else
+              echo "No .git directory — leaving existing files in place"
+            fi
+
             IMAGE_TAG=${{ github.sha }}
             DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/flask-app:${IMAGE_TAG}"
 
@@ -87,24 +100,60 @@ jobs:
               DC="docker compose"
             fi
 
-            # Update only the image lines for the selected service(s). Use perl with an alternate
-            # delimiter to avoid issues when the image contains '/' characters.
-            if [ "${TARGET}" = "flask-app-1" ] || [ "${TARGET}" = "all" ]; then
-              if grep -qE '^\s*flask-app-1:' docker-compose.yml; then
-                echo "Updating image for flask-app-1"
-                perl -0777 -pe "s|(flask-app-1:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|" -i docker-compose.yml || true
-              else
-                echo "Service flask-app-1 not found in docker-compose.yml — skipping update"
-              fi
+            # Detect service names present in docker-compose.yml on the VM and map requested
+            # targets (flask-app-1 / flask-app-2) to the actual service names found there.
+            SERVICE1_NAME=""
+            SERVICE2_NAME=""
+
+            if grep -qE '^\s*flask-app-1:' docker-compose.yml; then
+              SERVICE1_NAME="flask-app-1"
+            elif grep -qE '^\s*flask-app:' docker-compose.yml; then
+              SERVICE1_NAME="flask-app"
+            elif grep -qE '^\s*flask:' docker-compose.yml; then
+              SERVICE1_NAME="flask"
             fi
 
-            if [ "${TARGET}" = "flask-app-2" ] || [ "${TARGET}" = "all" ]; then
-              if grep -qE '^\s*flask-app-2:' docker-compose.yml; then
-                echo "Updating image for flask-app-2"
-                perl -0777 -pe "s|(flask-app-2:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|" -i docker-compose.yml || true
-              else
-                echo "Service flask-app-2 not found in docker-compose.yml — skipping update"
+            if grep -qE '^\s*flask-app-2:' docker-compose.yml; then
+              SERVICE2_NAME="flask-app-2"
+            elif grep -qE '^\s*flask-app:' docker-compose.yml; then
+              SERVICE2_NAME="flask-app"
+            elif grep -qE '^\s*flask:' docker-compose.yml; then
+              SERVICE2_NAME="flask"
+            fi
+
+            echo "Detected service names: SERVICE1=${SERVICE1_NAME:-<none>} SERVICE2=${SERVICE2_NAME:-<none>}"
+
+            # Map TARGET to the actual service name to operate on
+            if [ "${TARGET}" = "flask-app-1" ]; then
+              SERVICE_TO_UPDATE="${SERVICE1_NAME}"
+            elif [ "${TARGET}" = "flask-app-2" ]; then
+              SERVICE_TO_UPDATE="${SERVICE2_NAME}"
+            else
+              SERVICE_TO_UPDATE="all"
+            fi
+
+            # If a single-target was requested but we couldn't detect a matching service, fail
+            if [ "${SERVICE_TO_UPDATE}" != "all" ] && [ -z "${SERVICE_TO_UPDATE}" ]; then
+              echo "Requested target '${TARGET}' not found in docker-compose.yml on VM. Aborting."
+              echo "--- docker-compose.yml (current) ---"
+              cat docker-compose.yml || true
+              exit 1
+            fi
+
+            # Update image line(s) for the determined service name(s).
+            if [ "${SERVICE_TO_UPDATE}" = "all" ]; then
+              # Update any recognized service names if present
+              if [ -n "${SERVICE1_NAME}" ]; then
+                echo "Updating image for ${SERVICE1_NAME}"
+                perl -0777 -pe "s|(${SERVICE1_NAME}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|" -i docker-compose.yml || true
               fi
+              if [ -n "${SERVICE2_NAME}" ]; then
+                echo "Updating image for ${SERVICE2_NAME}"
+                perl -0777 -pe "s|(${SERVICE2_NAME}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|" -i docker-compose.yml || true
+              fi
+            else
+              echo "Updating image for ${SERVICE_TO_UPDATE}"
+              perl -0777 -pe "s|(${SERVICE_TO_UPDATE}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|" -i docker-compose.yml || true
             fi
 
             echo "--- docker-compose.yml (after update) ---"
