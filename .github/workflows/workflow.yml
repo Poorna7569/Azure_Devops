@@ -5,6 +5,11 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'Deployment target: flask-app-1, flask-app-2, or all'
+        required: false
+        default: 'all'
 
 jobs:
   build:
@@ -61,13 +66,56 @@ jobs:
           timeout: 60s
           command_timeout: 10m
           script: |
+            set -e
             cd /home/azureuser/app
             IMAGE_TAG=${{ github.sha }}
             DOCKER_IMAGE="${{ secrets.DOCKER_USERNAME }}/flask-app:${IMAGE_TAG}"
-            sed -i "s|image: .*|image: ${DOCKER_IMAGE}|g" docker-compose.yml
-            cat docker-compose.yml
-            docker-compose pull
-            docker-compose down || true
-            docker-compose up -d
+
+            # Determine the deployment target. workflow_dispatch input 'target' takes precedence.
+            if [ -n "${{ github.event.inputs.target }}" ]; then
+              TARGET="${{ github.event.inputs.target }}"
+            else
+              TARGET="all"
+            fi
+
+            echo "Deploying image: ${DOCKER_IMAGE} to target: ${TARGET}"
+
+            # Choose docker-compose command
+            if command -v docker-compose >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              DC="docker compose"
+            fi
+
+            # Update only the image lines for the selected service(s). Use perl for multiline replace.
+            if [ "${TARGET}" = "flask-app-1" ] || [ "${TARGET}" = "all" ]; then
+              echo "Updating image for flask-app-1"
+              perl -0777 -pe "s/(flask-app-1:\n(?:.*?\n)*?\simage:\s)\S+/\$1${DOCKER_IMAGE}/" -i docker-compose.yml || true
+            fi
+
+            if [ "${TARGET}" = "flask-app-2" ] || [ "${TARGET}" = "all" ]; then
+              echo "Updating image for flask-app-2"
+              perl -0777 -pe "s/(flask-app-2:\n(?:.*?\n)*?\simage:\s)\S+/\$1${DOCKER_IMAGE}/" -i docker-compose.yml || true
+            fi
+
+            echo "--- docker-compose.yml (after update) ---"
+            cat docker-compose.yml || true
+
+            # Pull and start only the targeted service(s) to avoid touching the other
+            if [ "${TARGET}" = "flask-app-1" ]; then
+              echo "Pulling and updating flask-app-1 only"
+              $DC pull flask-app-1 || true
+              $DC up -d flask-app-1
+            elif [ "${TARGET}" = "flask-app-2" ]; then
+              echo "Pulling and updating flask-app-2 only"
+              $DC pull flask-app-2 || true
+              $DC up -d flask-app-2
+            else
+              echo "Pulling and updating all services"
+              $DC pull || true
+              $DC down || true
+              $DC up -d
+            fi
+
             sleep 3
-            docker ps
+            $DC ps

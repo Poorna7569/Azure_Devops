@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  flask-app-1:
+    # CI will replace the placeholder image tag with the real tag
+    image: poorna756939/flask-app:APP1_PLACEHOLDER
+    ports:
+      - "8001:8000"
+    restart: always
+
+  flask-app-2:
+    image: poorna756939/flask-app:APP2_PLACEHOLDER
+    ports:
+      - "8002:8000"
+    restart: always
