@@ -150,21 +150,19 @@ jobs:
               exit 1
             fi
 
-            # Update image line(s) for the determined service name(s).
-            # The regex matches placeholders like APP1_PLACEHOLDER or full image names.
+            # Update image line(s) for the determined service name(s) using sed.
             if [ "${SERVICE_TO_UPDATE}" = "all" ]; then
-              # Update any recognized service names if present
               if [ -n "${SERVICE1_NAME}" ]; then
                 echo "Updating image for ${SERVICE1_NAME}"
-                perl -0777 -pe "s|(${SERVICE1_NAME}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|g" -i docker-compose.yml || true
+                sed -i "/^  ${SERVICE1_NAME}:$/,/^  [^ ]/ { s|image:.*|image: ${DOCKER_IMAGE}|; }" docker-compose.yml || true
               fi
               if [ -n "${SERVICE2_NAME}" ]; then
                 echo "Updating image for ${SERVICE2_NAME}"
-                perl -0777 -pe "s|(${SERVICE2_NAME}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|g" -i docker-compose.yml || true
+                sed -i "/^  ${SERVICE2_NAME}:$/,/^  [^ ]/ { s|image:.*|image: ${DOCKER_IMAGE}|; }" docker-compose.yml || true
               fi
             else
               echo "Updating image for ${SERVICE_TO_UPDATE}"
-              perl -0777 -pe "s|(${SERVICE_TO_UPDATE}:\n(?:.*?\n)*?\simage:\s)\S+|$1${DOCKER_IMAGE}|g" -i docker-compose.yml || true
+              sed -i "/^  ${SERVICE_TO_UPDATE}:$/,/^  [^ ]/ { s|image:.*|image: ${DOCKER_IMAGE}|; }" docker-compose.yml || true
             fi
 
             echo "--- docker-compose.yml (after update) ---"
